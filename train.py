@@ -129,7 +129,7 @@ def main():
             batch_size=args.batch_size,
             verbose=1,
             device=device,
-            policy_kwargs=dict(n_lstm_layers=2, activation_fn=nn.SiLU),
+            policy_kwargs=dict(n_lstm_layers=2, activation_fn=nn.GELU),
         )
 
     model.set_logger(
