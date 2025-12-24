@@ -7,6 +7,8 @@ import maze_env
 from stable_baselines3 import PPO
 from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.logger import configure
+from stable_baselines3.common.callbacks import EvalCallback
 import torch.nn as nn
 
 
@@ -15,7 +17,7 @@ def setup_logging(log_dir):
     log_path = os.path.join(log_dir, timestamp)
     os.makedirs(log_path, exist_ok=True)
 
-    log_file = os.path.join(log_path, "train.log")
+    log_file = os.path.join(log_path, "info.txt")
 
     logging.basicConfig(
         level=logging.INFO,
@@ -37,7 +39,13 @@ def parse_args():
         "--n_envs", type=int, default=256, help="Number of parallel environments"
     )
     parser.add_argument(
-        "--n_time_steps_per_iteration",
+        "--n_eval_envs",
+        type=int,
+        default=64,
+        help="Number of parallel evaluation environments",
+    )
+    parser.add_argument(
+        "--n_timesteps_per_iteration",
         type=int,
         default=12800,
         help="Time steps per iteration",
@@ -64,13 +72,10 @@ def parse_args():
         "--log_dir", type=str, default="./logs", help="Directory to save logs"
     )
     parser.add_argument(
-        "--model_save_dir",
-        type=str,
-        default="./models",
-        help="Directory to save models",
+        "--model_name", type=str, default="maze_model", help="Model name for saving"
     )
     parser.add_argument(
-        "--model_name", type=str, default="maze_model", help="Model name for saving"
+        "--tensorboard_log", type=str, default=None, help="Tensorboard log directory"
     )
 
     return parser.parse_args()
@@ -85,7 +90,7 @@ def main():
     logger.info("Starting training with the following configuration:")
     logger.info(f"Environment: {args.env_id}")
     logger.info(f"Number of environments: {args.n_envs}")
-    logger.info(f"Time steps per iteration: {args.n_time_steps_per_iteration}")
+    logger.info(f"Time steps per iteration: {args.n_timesteps_per_iteration}")
     logger.info(f"Number of epochs: {args.n_epochs}")
     logger.info(f"Batch size: {args.batch_size}")
     logger.info(f"Total timesteps: {args.total_timesteps}")
@@ -94,7 +99,7 @@ def main():
     logger.info(f"Log directory: {log_path}")
     logger.info("=" * 50)
 
-    n_steps = args.n_time_steps_per_iteration // args.n_envs
+    n_steps = args.n_timesteps_per_iteration // args.n_envs
     if n_steps <= 0:
         n_steps = 1
     device = "cpu" if args.use_cpu else "cuda"
@@ -124,13 +129,26 @@ def main():
             batch_size=args.batch_size,
             verbose=1,
             device=device,
-            policy_kwargs=dict(n_lstm_layers=2, activation_fn=nn.GELU),
+            policy_kwargs=dict(n_lstm_layers=2, activation_fn=nn.SiLU),
         )
+
+    model.set_logger(
+        configure(log_path, ["stdout", "log", "json", "csv", "tensorboard"])
+    )
 
     logger.info(f"Model policy: {model.policy}")
 
+    eval_callback = EvalCallback(
+        make_vec_env(args.env_id, n_envs=args.n_eval_envs),
+        best_model_save_path=log_path,
+        log_path=log_path,
+        eval_freq=100,
+        deterministic=True,
+        render=False,
+    )
+
     logger.info(f"Starting training for {args.total_timesteps} timesteps...")
-    model.learn(total_timesteps=args.total_timesteps)
+    model.learn(total_timesteps=args.total_timesteps, callback=eval_callback)
 
     model_path = os.path.join(log_path, f"{args.model_name}.zip")
     model.save(model_path)
