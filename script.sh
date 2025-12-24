@@ -1,0 +1,1 @@
+python train.py --env_id MazeNavigation-v1 --algorithm RecurrentPPO
