@@ -15,7 +15,14 @@ from maze_env import MazeNavigationEnv, Direction
 
 
 class MazeVisualizer:
-    def __init__(self, mode="random", model_path=None, model_cls=None, pos_aware=True):
+    def __init__(
+        self,
+        mode="random",
+        render_fps=4,
+        model_path=None,
+        model_cls=None,
+        pos_aware=True,
+    ):
         """
         初始化可视化器
 
@@ -32,9 +39,11 @@ class MazeVisualizer:
 
         env_id = "MazeNavigation-v0" if pos_aware else "MazeNavigation-v1"
         self.env = gym.make(env_id, render_mode="human")
+        self.env.metadata["render_fps"] = render_fps
         self.env_unwrapped = self.env.unwrapped
 
         self.model = None
+        self.is_recurrent = False
         if mode == "model":
             self._load_model()
 
@@ -44,7 +53,7 @@ class MazeVisualizer:
     def _load_model(self):
         """加载SB3模型"""
         try:
-            from stable_baselines3 import PPO, DQN, A2C, SAC, TD3
+            from stable_baselines3 import PPO
             from sb3_contrib import RecurrentPPO
 
             if self.model_path is None:
@@ -55,10 +64,6 @@ class MazeVisualizer:
 
             model_classes = {
                 "PPO": PPO,
-                "DQN": DQN,
-                "A2C": A2C,
-                "SAC": SAC,
-                "TD3": TD3,
                 "RecurrentPPO": RecurrentPPO,
             }
             if self.model_cls not in model_classes:
@@ -67,6 +72,7 @@ class MazeVisualizer:
                 )
 
             self.model = model_classes[self.model_cls].load(self.model_path)
+            self.is_recurrent = self.model_cls == "RecurrentPPO"
             print(f"成功加载 {self.model_cls} 模型: {self.model_path}")
         except ImportError:
             raise ImportError("请安装 stable-baselines3: pip install stable-baselines3")
@@ -74,11 +80,6 @@ class MazeVisualizer:
     def _get_random_action(self):
         """获取随机动作"""
         return self.env.action_space.sample()
-
-    def _get_model_action(self, obs):
-        """获取模型预测的动作"""
-        action, _ = self.model.predict(obs, deterministic=True)
-        return action
 
     def _get_manual_action(self):
         """获取手动输入的动作"""
@@ -157,12 +158,16 @@ class MazeVisualizer:
             print(f"  目标: {self.env_unwrapped.target_pos}")
 
             step = 0
+            state = None
+            episode_start = True
             total_reward = 0
             for step in range(1, max_steps + 1):
                 if not self.running:
                     break
-
-                action = self._get_model_action(obs)
+                action, state = self.model.predict(
+                    obs, state, episode_start=episode_start, deterministic=False
+                )
+                episode_start = False
                 obs, reward, terminated, truncated, info = self.env.step(action)
                 total_reward += reward
 
@@ -252,8 +257,7 @@ def main():
         "--model_cls",
         type=str,
         default=None,
-        choices=["PPO", "DQN", "A2C", "SAC", "TD3"],
-        help="SB3模型类名（仅model模式需要）: PPO, DQN, A2C, SAC, TD3",
+        help="SB3模型类名（仅model模式需要）: PPO, RecurrentPPO",
     )
     parser.add_argument(
         "--pos_aware",
@@ -273,12 +277,19 @@ def main():
         default=1000,
         help="每回合最大步数（仅random和model模式）",
     )
+    parser.add_argument(
+        "--render_fps",
+        type=int,
+        default=4,
+        help="渲染帧率（仅random和model模式）",
+    )
 
     args = parser.parse_args()
 
     visualizer = MazeVisualizer(
         mode=args.mode,
         model_path=args.model,
+        render_fps=args.render_fps,
         model_cls=args.model_cls,
         pos_aware=args.pos_aware,
     )

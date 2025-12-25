@@ -7,7 +7,7 @@ import numpy as np
 
 
 OBS_DICT = {
-    "OBS_CURRENT_POS": 0,
+    "OBS_START_POS": 0,
     "OBS_TARGET_POS": 1,
     "OBS_WALL": 2,
     "OBS_ROAD": 3,
@@ -71,7 +71,7 @@ def encode_cell(cell):
     elif cell == " ":
         return OBS_DICT["OBS_ROAD"]
     elif cell == "P":
-        return OBS_DICT["OBS_CURRENT_POS"]
+        return OBS_DICT["OBS_START_POS"]
     elif cell == "G":
         return OBS_DICT["OBS_TARGET_POS"]
     else:
