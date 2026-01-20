@@ -1,49 +1,49 @@
-# PMN：基于本体感觉的迷宫导航（Gymnasium 环境 + SB3 训练脚本）
+# PMN: Proprioception-Based Maze Navigation (Gymnasium Env + SB3 Training Scripts)
 
-**Languages / 语言**: 中文（本页） | [English](README_EN.md)
+**Languages / 语言**: English | [中文(Chinese)](README_CN.md)
 
-一个轻量的迷宫导航强化学习项目：
+A lightweight reinforcement learning project for maze navigation:
 
-- 自定义 Gymnasium 环境 `MazeNavigationEnv`（基于 `labmaze` 生成随机起点/目标）
-- 支持两种观测设置：带位置信息（`MazeNavigation-v0`）/ 不带位置信息（`MazeNavigation-v1`）
-- 使用 Stable-Baselines3 / sb3-contrib 训练 `PPO` 与 `RecurrentPPO(MlpLstmPolicy)`
-- 提供 pygame 可视化脚本（随机策略 / 模型策略 / 手动 WASD 控制）
+- Custom Gymnasium environment `MazeNavigationEnv` (random start/goal generated via `labmaze`)
+- Two observation settings: position-aware (`MazeNavigation-v0`) / position-unaware (`MazeNavigation-v1`)
+- Train with Stable-Baselines3 / sb3-contrib using `PPO` and `RecurrentPPO(MlpLstmPolicy)`
+- Pygame visualization (random policy / model policy / manual WASD control)
 
-> 备注：本仓库当前以脚本形式组织，适合直接跑实验并把 `logs/` 输出作为训练记录。
-
----
-
-## 功能特性
-
-- **环境**：离散动作（上/下/左/右），迷宫墙体/通路/起点/目标
-- **奖励设计**：
-  - 每步：`-0.1`
-  - 碰壁：`-1.0`
-  - 到达目标：`+10.0`（episode 终止）
-- **环境注册**：
-  - `MazeNavigation-v0`：`pos_aware=True`（观测包含当前位置与目标位置）
-  - `MazeNavigation-v1`：`pos_aware=False`（仅局部邻域本体感觉）
-- **训练**：向量化并行环境（默认 `n_envs=256`）+ EvalCallback
-- **日志**：每次训练输出到 `./logs/YYYYMMDD_HHMMSS/`（csv/json/tensorboard 等）
+> Note: This repo is currently organized as scripts, suitable for running experiments directly and using `logs/` as training records.
 
 ---
 
-## 目录结构
+## Features
 
-- `maze_env.py`：Gymnasium 环境实现与环境注册（`MazeNavigation-v0/v1`）
-- `train.py`：训练入口（PPO / RecurrentPPO）
-- `visualize_maze.py`：pygame 可视化（random/model/manual）
-- `test_gym_env.py`：环境基本功能自检脚本
-- `utils.py`：迷宫布局/编码/渲染工具
-- `build_maze_example.py`：`labmaze` 迷宫构建示例
-- `logs/`：训练输出（默认已在 `.gitignore` 中忽略）
-- `imgs/`：环境渲染图片输出目录
+- **Environment**: discrete actions (up/down/left/right), maze walls/paths/start/goal
+- **Reward shaping**:
+  - Per step: `-0.1`
+  - Hit wall: `-1.0`
+  - Reach goal: `+10.0` (terminates episode)
+- **Env registration**:
+  - `MazeNavigation-v0`: `pos_aware=True` (observation includes current position and goal position)
+  - `MazeNavigation-v1`: `pos_aware=False` (local proprioception only)
+- **Training**: vectorized parallel envs (default `n_envs=256`) + EvalCallback
+- **Logging**: each run writes to `./logs/YYYYMMDD_HHMMSS/` (csv/json/tensorboard, etc.)
 
 ---
 
-## 环境依赖
+## Project Structure
 
-Python 依赖见 `requirements.txt`：
+- `maze_env.py`: Gymnasium environment implementation and env registration (`MazeNavigation-v0/v1`)
+- `train.py`: training entry (PPO / RecurrentPPO)
+- `visualize_maze.py`: pygame visualization (random/model/manual)
+- `test_gym_env.py`: basic environment sanity checks
+- `utils.py`: maze layout/encoding/rendering utilities
+- `build_maze_example.py`: `labmaze` construction example
+- `logs/`: training outputs (ignored by default in `.gitignore`)
+- `imgs/`: rendered images output directory
+
+---
+
+## Dependencies
+
+Python dependencies are listed in `requirements.txt`:
 
 ```bash
 pip install -r requirements.txt
@@ -51,42 +51,42 @@ pip install -r requirements.txt
 
 ---
 
-## 快速开始
+## Quick Start
 
-### 1) 安装
+### 1) Install
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2) 训练（PPO / RecurrentPPO）
+### 2) Train (PPO / RecurrentPPO)
 
-`train.py` 会自动创建 `./logs/<timestamp>/`，并将模型保存为 `<model_name>.zip`。
+`train.py` automatically creates `./logs/<timestamp>/` and saves the model as `<model_name>.zip`.
 
-- 训练 `RecurrentPPO`：
+- Train `RecurrentPPO`:
 
 ```bash
 python train.py --env_id MazeNavigation-v1 --algorithm RecurrentPPO
 ```
 
-- 训练 `PPO`（无记忆）：
+- Train `PPO` (no memory):
 
 ```bash
 python train.py --env_id MazeNavigation-v1 --algorithm PPO
 ```
 
-常用可选参数（来自 `train.py --help`）：
+Common optional arguments (from `train.py --help`):
 
-- `--n_envs`：并行环境数（默认 256）
-- `--n_eval_envs`：评估并行环境数（默认 64）
-- `--total_timesteps`：总训练步数（默认 1,000,000）
-- `--use_cpu`：强制使用 CPU
-- `--log_dir`：日志根目录（默认 `./logs`）
-- `--model_name`：最终保存的模型文件名（默认 `maze_model`）
+- `--n_envs`: number of parallel envs (default 256)
+- `--n_eval_envs`: number of parallel eval envs (default 64)
+- `--total_timesteps`: total timesteps (default 1,000,000)
+- `--use_cpu`: force CPU
+- `--log_dir`: root log directory (default `./logs`)
+- `--model_name`: output model name (default `maze_model`)
 
-### 3) TensorBoard 查看训练曲线
+### 3) View Curves with TensorBoard
 
-训练日志会写入同一目录的 tensorboard events：
+TensorBoard events are written in the same log directory:
 
 ```bash
 tensorboard --logdir ./logs
@@ -94,51 +94,51 @@ tensorboard --logdir ./logs
 
 ---
 
-## 可视化与交互
+## Visualization & Interaction
 
-### 手动控制（WASD/方向键）
+### Manual Control (WASD / Arrow Keys)
 
 ```bash
 python visualize_maze.py --mode manual --render_fps 4
 ```
 
-按键：
+Keys:
 
-- `W/A/S/D` 或方向键：移动
-- `R`：重置
-- `ESC/Q`：退出
+- `W/A/S/D` or arrow keys: move
+- `R`: reset
+- `ESC/Q`: quit
 
-### 随机策略可视化
+### Random Policy Visualization
 
 ```bash
 python visualize_maze.py --mode random --render_fps 30 --max_episodes 10 --max_steps 1000
 ```
 
-### 加载训练好的 SB3 模型
+### Load a Trained SB3 Model
 
 ```bash
 python visualize_maze.py --mode model --model ./logs/<timestamp>/maze_model.zip --model_cls PPO
 ```
 
-如果你训练的是带记忆的模型：
+If you trained a recurrent model:
 
 ```bash
 python visualize_maze.py --mode model --model ./logs/<timestamp>/maze_model.zip --model_cls RecurrentPPO
 ```
 
-`visualize_maze.py` 关键参数：
+Key args in `visualize_maze.py`:
 
-- `--mode`：`random | model | manual`
-- `--model`：模型路径（仅 `model` 模式）
-- `--model_cls`：`PPO | RecurrentPPO`（仅 `model` 模式）
-- `--pos_aware`：使用位置感知环境（会选用 `MazeNavigation-v0`）
-- `--render_fps`：渲染帧率
+- `--mode`: `random | model | manual`
+- `--model`: model path (model mode only)
+- `--model_cls`: `PPO | RecurrentPPO` (model mode only)
+- `--pos_aware`: use the position-aware env (selects `MazeNavigation-v0`)
+- `--render_fps`: render FPS
 
 ---
 
-## 环境自检
+## Environment Self-Test
 
-运行基础测试：
+Run basic tests:
 
 ```bash
 python test_gym_env.py
