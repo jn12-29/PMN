@@ -49,14 +49,6 @@ Python 依赖见 `requirements.txt`：
 pip install -r requirements.txt
 ```
 
-可视化/人类渲染需要额外安装：
-
-```bash
-pip install pygame
-```
-
-> 说明：训练脚本通常不需要 `pygame`；只有在 `render_mode="human"` 或运行可视化脚本时才需要。
-
 ---
 
 ## 快速开始
